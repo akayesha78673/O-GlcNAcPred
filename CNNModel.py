@@ -1,59 +1,88 @@
-from tensorflow import keras
-from keras import layers
-import pandas as pd
-import os
-import logging
-from configparser import ConfigParser
-logger = logging.getLogger(__name__)
-def CNNModel(X_train,Y_train,X_valid,Y_valid,config_file='CNN_config.ini'):
-	parser = ConfigParser(os.environ)
-	if not os.path.exists('CNN_config.ini'):
-		raise IOError("Configuration file '%s' does not exist" % config_file)
-	logging.info('Loading config from %s', config_file)
-	parser.read('CNN_config.ini')
-	config_header = 'CNN'
-
-	logger.info('config header: %s', config_header)
-	
-	filters = parser.getint(config_header, 'filters')
-	kernels = parser.getint(config_header, 'kernels')
-	dense_layers1 = parser.getint(config_header, 'dense_layers1')
-	dense_layers2 = parser.getint(config_header, 'dense_layers2')
-	Learning_Rate = parser.getfloat(config_header, 'Learning_Rate')
-	dropout = parser.getfloat(config_header, 'dropout')
-	Batch_size = parser.getint(config_header, 'Batch_size')
-	Epochs = parser.getint(config_header, 'Epochs')
-	earlystop = parser.getboolean(config_header, 'earlystop')
-	
-	
-	train_shape=X_train.shape
-	inputs = keras.Input(shape=(None,train_shape[1]), dtype="float32")
-
-	kmodel = keras.models.Sequential()
-	kmodel.add(layers.Reshape(input_shape=(train_shape[1], train_shape[2]),
-					  target_shape=(train_shape[1], train_shape[2])))
-	kmodel.add(layers.Conv1D(filters, kernel_size=kernels, padding='same',batch_input_shape=(None, train_shape[1], train_shape[2])))
-	kmodel.add(layers.BatchNormalization(name="conv_1_bn"))
-	kmodel.add(layers.ReLU(name="conv_1_relu"))
-
-	kmodel.add(layers.Flatten())
-	kmodel.add(layers.Dense(dense_layers1, activation = 'relu'))
-	kmodel.add(layers.Dense(dense_layers2, kernel_regularizer=keras.regularizers.l2(0.001),
-					activity_regularizer=keras.regularizers.l1(0.001)))
-	kmodel.add(layers.Activation('relu'))
-	kmodel.add(layers.Dropout(dropout))
-	kmodel.add(layers.Dense(1,activation='sigmoid'))
-	opt = keras.optimizers.Adam(learning_rate=Learning_Rate)
-	kmodel.compile(loss= "binary_crossentropy", metrics=["accuracy"],optimizer=opt)
-	callback1=keras.callbacks.EarlyStopping(monitor = 'val_accuracy', min_delta = 0.0005, patience=8, restore_best_weights=True )
-	if earlystop:
-		kmodel.fit(X_train, Y_train, batch_size=Batch_size, epochs=Epochs, validation_data=(X_valid, Y_valid),callbacks=callback1)
-	else:
-		kmodel.fit(X_train, Y_train, batch_size=Batch_size, epochs=Epochs, validation_data=(X_valid, Y_valid))
-	return kmodel
-
-
-
-
-
-	
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "df1e6091",
+   "metadata": {
+    "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+    "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+    "execution": {
+     "iopub.execute_input": "2024-07-29T12:07:19.734412Z",
+     "iopub.status.busy": "2024-07-29T12:07:19.734012Z",
+     "iopub.status.idle": "2024-07-29T12:07:20.768933Z",
+     "shell.execute_reply": "2024-07-29T12:07:20.767665Z"
+    },
+    "papermill": {
+     "duration": 1.042958,
+     "end_time": "2024-07-29T12:07:20.772587",
+     "exception": false,
+     "start_time": "2024-07-29T12:07:19.729629",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# This Python 3 environment comes with many helpful analytics libraries installed\n",
+    "# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python\n",
+    "# For example, here's several helpful packages to load\n",
+    "\n",
+    "import numpy as np # linear algebra\n",
+    "import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)\n",
+    "\n",
+    "# Input data files are available in the read-only \"../input/\" directory\n",
+    "# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory\n",
+    "\n",
+    "import os\n",
+    "for dirname, _, filenames in os.walk('/kaggle/input'):\n",
+    "    for filename in filenames:\n",
+    "        print(os.path.join(dirname, filename))\n",
+    "\n",
+    "# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using \"Save & Run All\" \n",
+    "# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session"
+   ]
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "none",
+   "dataSources": [],
+   "isGpuEnabled": false,
+   "isInternetEnabled": false,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.13"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 5.06739,
+   "end_time": "2024-07-29T12:07:21.499084",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2024-07-29T12:07:16.431694",
+   "version": "2.5.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
